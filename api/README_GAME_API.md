@@ -20,6 +20,7 @@ Run this SQL in phpMyAdmin:
 
 - `api/sql/game_init.sql`
 - If tables already exist, run: `api/sql/game_migration_v1_0.sql`
+- For 40s inactivity auto-disconnect, also run: `api/sql/game_migration_disconnect_40s.sql`
 
 It creates only prefixed tables:
 
@@ -133,6 +134,7 @@ Resets game to `secret_phase` with same players and same room code.
 - Fair ending rule (opponent gets equal attempt count)
 - Same-round solve => draw
 - Strict version match: room players must use the exact same `appVersion`
+- Auto-disconnect: if a player is inactive for 40+ seconds, the opponent wins by timeout
 
 ## Important security note
 

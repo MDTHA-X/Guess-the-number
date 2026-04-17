@@ -40,6 +40,17 @@ try {
         gtn_error('Invalid player token.', 403);
     }
 
+    gtn_touch_player($pdo, (int) $player['id']);
+    $room = gtn_timeout_check($pdo, $room, $player);
+    if (($room['status'] ?? '') === 'finished') {
+        $pdo->commit();
+        gtn_json([
+            'ok' => true,
+            'isCorrect' => false,
+            'state' => gtn_state($pdo, $room, $player),
+        ]);
+    }
+
     $playerId = (int) $player['id'];
     $role = gtn_role($room, $playerId);
 
@@ -113,8 +124,7 @@ try {
         'is_correct' => $isCorrect ? 1 : 0,
     ]);
 
-    $updateStmt = $pdo->prepare(
-        'UPDATE ' . GTN_ROOMS . ' SET ' .
+    $setSql =
         'host_guess_count = :host_guess_count, ' .
         'guest_guess_count = :guest_guess_count, ' .
         'host_solved_on = :host_solved_on, ' .
@@ -122,10 +132,9 @@ try {
         'status = :status, ' .
         'winner_player_id = :winner_player_id, ' .
         'is_draw = :is_draw, ' .
-        'turn_player_id = :turn_player_id ' .
-        'WHERE id = :id'
-    );
-    $updateStmt->execute([
+        'turn_player_id = :turn_player_id';
+
+    $params = [
         'host_guess_count' => $hostGuessCount,
         'guest_guess_count' => $guestGuessCount,
         'host_solved_on' => $hostSolvedOn,
@@ -135,7 +144,17 @@ try {
         'is_draw' => $newIsDraw,
         'turn_player_id' => $newTurnPlayerId,
         'id' => (int) $room['id'],
-    ]);
+    ];
+
+    if (gtn_supports_finish_reason($pdo)) {
+        $setSql .= ', finish_reason = :finish_reason';
+        $params['finish_reason'] = $newStatus === 'finished' ? 'guess' : null;
+    }
+
+    $updateStmt = $pdo->prepare(
+        'UPDATE ' . GTN_ROOMS . ' SET ' . $setSql . ' WHERE id = :id'
+    );
+    $updateStmt->execute($params);
 
     $pdo->commit();
 

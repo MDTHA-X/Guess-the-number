@@ -19,6 +19,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
 const GTN_ROOMS = 'gtn_rooms';
 const GTN_PLAYERS = 'gtn_players';
 const GTN_MOVES = 'gtn_moves';
+const GTN_DISCONNECT_SECONDS = 40;
 
 function gtn_pdo(): PDO
 {
@@ -27,6 +28,35 @@ function gtn_pdo(): PDO
         gtn_error('Database is unavailable right now.', 500);
     }
     return $pdo;
+}
+
+function gtn_has_column(PDO $pdo, string $table, string $column): bool
+{
+    static $cache = [];
+    $cacheKey = $table . '.' . $column;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    try {
+        $stmt = $pdo->prepare('SHOW COLUMNS FROM `' . $table . '` LIKE :column_name');
+        $stmt->execute(['column_name' => $column]);
+        $cache[$cacheKey] = $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    } catch (Throwable $e) {
+        $cache[$cacheKey] = false;
+    }
+
+    return $cache[$cacheKey];
+}
+
+function gtn_supports_last_seen(PDO $pdo): bool
+{
+    return gtn_has_column($pdo, GTN_PLAYERS, 'last_seen_at');
+}
+
+function gtn_supports_finish_reason(PDO $pdo): bool
+{
+    return gtn_has_column($pdo, GTN_ROOMS, 'finish_reason');
 }
 
 function gtn_json(array $data, int $statusCode = 200): never
@@ -221,6 +251,19 @@ function gtn_fetch_player(PDO $pdo, int $roomId, string $playerToken): ?array
     return $row === false ? null : $row;
 }
 
+function gtn_fetch_player_by_id(PDO $pdo, int $roomId, int $playerId): ?array
+{
+    $stmt = $pdo->prepare(
+        'SELECT * FROM ' . GTN_PLAYERS . ' WHERE room_id = :room_id AND id = :id LIMIT 1'
+    );
+    $stmt->execute([
+        'room_id' => $roomId,
+        'id' => $playerId,
+    ]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row === false ? null : $row;
+}
+
 function gtn_role(array $room, int $playerId): string
 {
     if ((int) $room['host_player_id'] === $playerId) {
@@ -230,6 +273,70 @@ function gtn_role(array $room, int $playerId): string
         return 'guest';
     }
     gtn_error('Player is not in room.', 403);
+}
+
+function gtn_touch_player(PDO $pdo, int $playerId): void
+{
+    if (!gtn_supports_last_seen($pdo)) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE ' . GTN_PLAYERS . ' SET last_seen_at = NOW() WHERE id = :id'
+    );
+    $stmt->execute(['id' => $playerId]);
+}
+
+function gtn_timeout_check(PDO $pdo, array $room, array $player): array
+{
+    if (!gtn_supports_last_seen($pdo)) {
+        return $room;
+    }
+
+    if (($room['status'] ?? '') === 'finished') {
+        return $room;
+    }
+
+    $playerId = (int) $player['id'];
+    $role = gtn_role($room, $playerId);
+    $opponentId = $role === 'host' ? (int) $room['guest_player_id'] : (int) $room['host_player_id'];
+    if ($opponentId <= 0) {
+        return $room;
+    }
+
+    $opponent = gtn_fetch_player_by_id($pdo, (int) $room['id'], $opponentId);
+    if ($opponent === null) {
+        return $room;
+    }
+
+    $lastSeenRaw = $opponent['last_seen_at'] ?? null;
+    $lastSeenTs = is_string($lastSeenRaw) ? strtotime($lastSeenRaw) : false;
+    if ($lastSeenTs === false) {
+        return $room;
+    }
+
+    if ((time() - $lastSeenTs) < GTN_DISCONNECT_SECONDS) {
+        return $room;
+    }
+
+    $setSql = 'status = :status, winner_player_id = :winner_player_id, is_draw = 0, turn_player_id = NULL';
+    $params = [
+        'status' => 'finished',
+        'winner_player_id' => $playerId,
+        'id' => (int) $room['id'],
+    ];
+    if (gtn_supports_finish_reason($pdo)) {
+        $setSql .= ', finish_reason = :finish_reason';
+        $params['finish_reason'] = 'opponent_timeout';
+    }
+
+    $updateStmt = $pdo->prepare(
+        'UPDATE ' . GTN_ROOMS . ' SET ' . $setSql . ' WHERE id = :id'
+    );
+    $updateStmt->execute($params);
+
+    $freshRoom = gtn_fetch_room($pdo, (string) $room['room_code'], true);
+    return $freshRoom ?? $room;
 }
 
 function gtn_score(string $secret, string $guess): array
@@ -341,6 +448,7 @@ function gtn_state(PDO $pdo, array $room, array $player): array
         'roomCode' => $room['room_code'],
         'appVersion' => $room['app_version'] ?? null,
         'status' => $room['status'],
+        'finishReason' => array_key_exists('finish_reason', $room) ? $room['finish_reason'] : null,
         'role' => $role,
         'yourTurn' => ((int) $room['turn_player_id'] === $playerId),
         'turnPlayerId' => $room['turn_player_id'] !== null ? (int) $room['turn_player_id'] : null,

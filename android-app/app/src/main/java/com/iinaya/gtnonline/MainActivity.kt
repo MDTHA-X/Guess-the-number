@@ -262,6 +262,7 @@ private fun GameRoot(
             if (showResultPopup) {
                 ResultPopupOverlay(
                     winner = uiState.gameState?.winner,
+                    finishReason = uiState.gameState?.finishReason,
                     opponentSecret = uiState.gameState?.opponentSecretValue,
                     onRematch = onRematch,
                     onExit = onLeaveRoom,
@@ -493,10 +494,21 @@ private fun GuideAndAboutScreen(onCloseGuide: () -> Unit) {
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("About Me", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("I am MD Tanjim Hossen Ahad.")
-                    Text("Currently Studying in CSE-JU.")
-                    Text("My GitHub is: MDTHA-X", fontWeight = FontWeight.SemiBold)
+                    Text("About Creators", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(
+                        "The game is crafted by these creators.",
+                        color = DeepBlue.copy(alpha = 0.72f),
+                    )
+                    CreatorProfileCard(
+                        name = "MD Tanjim Hossen Ahad",
+                        githubUrl = "https://github.com/MDTHA-X",
+                        accent = SkyBlue,
+                    )
+                    CreatorProfileCard(
+                        name = "Khadiza Akter",
+                        githubUrl = "https://github.com/khadiza-x",
+                        accent = Mint,
+                    )
                     HorizontalDivider()
                     Button(onClick = onCloseGuide, modifier = Modifier.fillMaxWidth()) {
                         Text("Back To Game")
@@ -524,6 +536,54 @@ private fun GuideStepCard(title: String, body: String) {
                 text = body,
                 style = MaterialTheme.typography.bodyMedium,
                 color = DeepBlue.copy(alpha = 0.9f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CreatorProfileCard(
+    name: String,
+    githubUrl: String,
+    accent: Color,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f)),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(99.dp))
+                        .background(accent),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepBlue,
+                )
+            }
+
+            Text(
+                text = "GitHub",
+                style = MaterialTheme.typography.labelLarge,
+                color = DeepBlue.copy(alpha = 0.68f),
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = githubUrl,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                color = DeepBlue.copy(alpha = 0.92f),
             )
         }
     }
@@ -1222,14 +1282,26 @@ private fun MoveCard(move: MoveItem, myRole: String?) {
 @Composable
 private fun ResultPopupOverlay(
     winner: String?,
+    finishReason: String?,
     opponentSecret: String?,
     onRematch: () -> Unit,
     onExit: () -> Unit,
     isLoading: Boolean,
 ) {
     val (title, subtitle, accent) = when (winner) {
-        "you" -> Triple("Victory", "You cracked it. Ready for another duel?", Mint)
-        "opponent" -> Triple("Defeat", "Opponent won this round. Come back stronger.", Tangerine)
+        "you" -> {
+            when (finishReason) {
+                "opponent_timeout" -> Triple("Victory", "Opponent disconnected for 40 seconds.", Mint)
+                "opponent_left" -> Triple("Victory", "Opponent left the room.", Mint)
+                else -> Triple("Victory", "You cracked it. Ready for another duel?", Mint)
+            }
+        }
+        "opponent" -> {
+            when (finishReason) {
+                "opponent_timeout" -> Triple("Defeat", "You were inactive for 40 seconds.", Tangerine)
+                else -> Triple("Defeat", "Opponent won this round. Come back stronger.", Tangerine)
+            }
+        }
         else -> Triple("Draw", "Both solved on same attempt.", Ocean)
     }
 

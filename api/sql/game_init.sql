@@ -17,12 +17,14 @@ CREATE TABLE IF NOT EXISTS gtn_rooms (
     guest_solved_on INT UNSIGNED DEFAULT NULL,
     winner_player_id BIGINT UNSIGNED DEFAULT NULL,
     is_draw TINYINT(1) NOT NULL DEFAULT 0,
+    finish_reason ENUM('guess', 'opponent_left', 'opponent_timeout') DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_gtn_rooms_room_code (room_code),
     KEY idx_gtn_rooms_status (status),
     KEY idx_gtn_rooms_app_version (app_version),
+    KEY idx_gtn_rooms_finish_reason (finish_reason),
     KEY idx_gtn_rooms_host_player_id (host_player_id),
     KEY idx_gtn_rooms_guest_player_id (guest_player_id),
     KEY idx_gtn_rooms_turn_player_id (turn_player_id)
@@ -34,11 +36,13 @@ CREATE TABLE IF NOT EXISTS gtn_players (
     role ENUM('host', 'guest') NOT NULL,
     display_name VARCHAR(60) NOT NULL,
     player_token CHAR(64) NOT NULL,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_gtn_players_token (player_token),
     UNIQUE KEY uq_gtn_players_room_role (room_id, role),
-    KEY idx_gtn_players_room_id (room_id)
+    KEY idx_gtn_players_room_id (room_id),
+    KEY idx_gtn_players_last_seen_at (last_seen_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS gtn_moves (

@@ -21,19 +21,35 @@ if ($playerToken === '') {
     gtn_error('Missing playerToken.');
 }
 
-$room = gtn_fetch_room($pdo, $roomCode, false);
-if ($room === null) {
-    gtn_error('Room not found.', 404);
+try {
+    $pdo->beginTransaction();
+
+    $room = gtn_fetch_room($pdo, $roomCode, true);
+    if ($room === null) {
+        $pdo->rollBack();
+        gtn_error('Room not found.', 404);
+    }
+
+    gtn_require_version_match($room, $appVersion);
+
+    $player = gtn_fetch_player($pdo, (int) $room['id'], $playerToken);
+    if ($player === null) {
+        $pdo->rollBack();
+        gtn_error('Invalid player token.', 403);
+    }
+
+    gtn_touch_player($pdo, (int) $player['id']);
+    $room = gtn_timeout_check($pdo, $room, $player);
+
+    $pdo->commit();
+
+    gtn_json([
+        'ok' => true,
+        'state' => gtn_state($pdo, $room, $player),
+    ]);
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    gtn_error('Failed to load state.', 500, ['detail' => $e->getMessage()]);
 }
-
-gtn_require_version_match($room, $appVersion);
-
-$player = gtn_fetch_player($pdo, (int) $room['id'], $playerToken);
-if ($player === null) {
-    gtn_error('Invalid player token.', 403);
-}
-
-gtn_json([
-    'ok' => true,
-    'state' => gtn_state($pdo, $room, $player),
-]);

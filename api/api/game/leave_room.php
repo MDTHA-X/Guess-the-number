@@ -34,19 +34,28 @@ try {
         gtn_error('Invalid player token.', 403);
     }
 
+    gtn_touch_player($pdo, (int) $player['id']);
+
     if ($room['status'] !== 'finished') {
         $playerId = (int) $player['id'];
         $role = gtn_role($room, $playerId);
         $winnerId = $role === 'host' ? (int) $room['guest_player_id'] : (int) $room['host_player_id'];
 
-        $updateStmt = $pdo->prepare(
-            'UPDATE ' . GTN_ROOMS . ' SET status = :status, winner_player_id = :winner_player_id, is_draw = 0, turn_player_id = NULL WHERE id = :id'
-        );
-        $updateStmt->execute([
+        $setSql = 'status = :status, winner_player_id = :winner_player_id, is_draw = 0, turn_player_id = NULL';
+        $params = [
             'status' => 'finished',
             'winner_player_id' => $winnerId > 0 ? $winnerId : null,
             'id' => (int) $room['id'],
-        ]);
+        ];
+        if (gtn_supports_finish_reason($pdo)) {
+            $setSql .= ', finish_reason = :finish_reason';
+            $params['finish_reason'] = 'opponent_left';
+        }
+
+        $updateStmt = $pdo->prepare(
+            'UPDATE ' . GTN_ROOMS . ' SET ' . $setSql . ' WHERE id = :id'
+        );
+        $updateStmt->execute($params);
     }
 
     $pdo->commit();

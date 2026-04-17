@@ -34,6 +34,8 @@ try {
         gtn_error('Invalid player token.', 403);
     }
 
+    gtn_touch_player($pdo, (int) $player['id']);
+
     if ($room['host_player_id'] === null || $room['guest_player_id'] === null) {
         $pdo->rollBack();
         gtn_error('Cannot rematch without 2 players.', 409);
@@ -47,8 +49,7 @@ try {
     $deleteMovesStmt = $pdo->prepare('DELETE FROM ' . GTN_MOVES . ' WHERE room_id = :room_id');
     $deleteMovesStmt->execute(['room_id' => (int) $room['id']]);
 
-    $resetRoomStmt = $pdo->prepare(
-        'UPDATE ' . GTN_ROOMS . ' SET ' .
+    $setSql =
         'status = :status, ' .
         'turn_player_id = NULL, ' .
         'host_secret_value = NULL, ' .
@@ -58,14 +59,21 @@ try {
         'host_solved_on = NULL, ' .
         'guest_solved_on = NULL, ' .
         'winner_player_id = NULL, ' .
-        'is_draw = 0 ' .
-        'WHERE id = :id'
-    );
+        'is_draw = 0';
 
-    $resetRoomStmt->execute([
+    $params = [
         'status' => 'secret_phase',
         'id' => (int) $room['id'],
-    ]);
+    ];
+
+    if (gtn_supports_finish_reason($pdo)) {
+        $setSql .= ', finish_reason = NULL';
+    }
+
+    $resetRoomStmt = $pdo->prepare(
+        'UPDATE ' . GTN_ROOMS . ' SET ' . $setSql . ' WHERE id = :id'
+    );
+    $resetRoomStmt->execute($params);
 
     $pdo->commit();
 

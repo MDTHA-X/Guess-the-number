@@ -40,6 +40,18 @@ try {
         gtn_error('Invalid player token.', 403);
     }
 
+    gtn_touch_player($pdo, (int) $player['id']);
+    $room = gtn_timeout_check($pdo, $room, $player);
+    if (($room['status'] ?? '') === 'finished') {
+        $pdo->commit();
+        gtn_json([
+            'ok' => true,
+            'status' => $room['status'],
+            'gameStarted' => false,
+            'state' => gtn_state($pdo, $room, $player),
+        ]);
+    }
+
     $playerId = (int) $player['id'];
     $role = gtn_role($room, $playerId);
 

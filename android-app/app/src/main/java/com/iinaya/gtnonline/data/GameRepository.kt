@@ -29,8 +29,7 @@ class GameRepository(private val api: GameApiService) {
             !body.ok -> Result.failure(ApiException(body.error ?: "Create room failed"))
             body.roomCode.isNullOrBlank() ||
                 body.playerToken.isNullOrBlank() ||
-                body.role.isNullOrBlank() ||
-                body.appVersion.isNullOrBlank() -> {
+                body.role.isNullOrBlank() -> {
                 Result.failure(ApiException("Incomplete session response"))
             }
             else -> Result.success(
@@ -39,7 +38,7 @@ class GameRepository(private val api: GameApiService) {
                     playerToken = body.playerToken,
                     role = body.role,
                     displayName = body.displayName?.takeIf { it.isNotBlank() } ?: displayName,
-                    appVersion = body.appVersion,
+                    appVersion = body.appVersion?.takeIf { it.isNotBlank() } ?: appVersion,
                 )
             )
         }
@@ -61,8 +60,7 @@ class GameRepository(private val api: GameApiService) {
             !body.ok -> Result.failure(ApiException(body.error ?: "Join room failed"))
             body.roomCode.isNullOrBlank() ||
                 body.playerToken.isNullOrBlank() ||
-                body.role.isNullOrBlank() ||
-                body.appVersion.isNullOrBlank() -> {
+                body.role.isNullOrBlank() -> {
                 Result.failure(ApiException("Incomplete session response"))
             }
             else -> Result.success(
@@ -71,7 +69,7 @@ class GameRepository(private val api: GameApiService) {
                     playerToken = body.playerToken,
                     role = body.role,
                     displayName = body.displayName?.takeIf { it.isNotBlank() } ?: displayName,
-                    appVersion = body.appVersion,
+                    appVersion = body.appVersion?.takeIf { it.isNotBlank() } ?: appVersion,
                 )
             )
         }

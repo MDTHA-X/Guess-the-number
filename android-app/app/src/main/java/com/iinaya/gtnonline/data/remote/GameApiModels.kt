@@ -66,6 +66,7 @@ data class GameState(
     @SerializedName("roomCode") val roomCode: String? = null,
     @SerializedName("appVersion") val appVersion: String? = null,
     @SerializedName("status") val status: String? = null,
+    @SerializedName("finishReason") val finishReason: String? = null,
     @SerializedName("role") val role: String? = null,
     @SerializedName("yourTurn") val yourTurn: Boolean = false,
     @SerializedName("turnPlayerId") val turnPlayerId: Int? = null,

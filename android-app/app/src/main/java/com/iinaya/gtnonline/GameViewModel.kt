@@ -564,12 +564,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             when (newState.winner) {
                 "you" -> {
                     emitSound(SoundEffect.WIN)
-                    setMessage("Victory! You won the match.")
+                    val finishMessage = when (newState.finishReason) {
+                        "opponent_timeout" -> "Victory! Opponent disconnected for 40 seconds."
+                        "opponent_left" -> "Victory! Opponent left the room."
+                        else -> "Victory! You won the match."
+                    }
+                    setMessage(finishMessage)
                 }
 
                 "opponent" -> {
                     emitSound(SoundEffect.LOSE)
-                    setMessage("Defeat! Opponent won this match.")
+                    val finishMessage = when (newState.finishReason) {
+                        "opponent_timeout" -> "Defeat! You were inactive for 40 seconds."
+                        else -> "Defeat! Opponent won this match."
+                    }
+                    setMessage(finishMessage)
                 }
 
                 "draw" -> {
