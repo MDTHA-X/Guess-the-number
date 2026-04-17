@@ -77,6 +77,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.iinaya.gtnonline.data.remote.GameState
 import com.iinaya.gtnonline.data.remote.MoveItem
@@ -102,10 +105,25 @@ class MainActivity : ComponentActivity() {
                 val snackbarHost = remember { SnackbarHostState() }
                 val clipboardManager: ClipboardManager = LocalClipboardManager.current
                 val sounds = remember { GameSoundPlayer() }
+                val lifecycleOwner = LocalLifecycleOwner.current
                 var guideVisible by rememberSaveable { mutableStateOf(false) }
 
                 DisposableEffect(Unit) {
                     onDispose { sounds.release() }
+                }
+
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_START -> vm.onAppForeground()
+                            Lifecycle.Event.ON_STOP -> vm.onAppBackground()
+                            else -> Unit
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
                 }
 
                 LaunchedEffect(Unit) {

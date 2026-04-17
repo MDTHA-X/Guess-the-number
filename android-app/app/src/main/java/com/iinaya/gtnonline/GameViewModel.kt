@@ -74,6 +74,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private var pollingJob: Job? = null
     private var pendingSoloResume: SoloGameState? = null
+    private var appInForeground: Boolean = true
 
     init {
         restoreStateIfAny()
@@ -443,6 +444,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onAppForeground() {
+        appInForeground = true
+        startPollingIfEligible()
+    }
+
+    fun onAppBackground() {
+        appInForeground = false
+        stopPolling()
+    }
+
     private fun restoreStateIfAny() {
         viewModelScope.launch {
             val snapshot = sessionStore.snapshotFlow.first()
@@ -482,7 +493,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
                 _uiState.update { it.copy(isLoading = false) }
                 if (_uiState.value.session != null) {
-                    startPolling()
+                    startPollingIfEligible()
                 }
             }
         }
@@ -514,7 +525,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
         }
 
-        startPolling()
+        startPollingIfEligible()
     }
 
     private fun startPolling() {
@@ -537,6 +548,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun stopPolling() {
         pollingJob?.cancel()
         pollingJob = null
+    }
+
+    private fun startPollingIfEligible() {
+        if (!appInForeground) {
+            return
+        }
+        if (_uiState.value.session == null) {
+            return
+        }
+        if (pollingJob != null) {
+            return
+        }
+        startPolling()
     }
 
     private fun applyGameState(newState: GameState) {
