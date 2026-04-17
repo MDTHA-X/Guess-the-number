@@ -1,0 +1,62 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#122C5A"
+        android:pathData="M20,10h68c11,0 20,9 20,20v48c0,11 -9,20 -20,20H20C9,98 0,89 0,78V30C0,19 9,10 20,10z" />
+
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M20,10h68c11,0 20,9 20,20v15H0V30C0,19 9,10 20,10z" />
+
+    <path
+        android:fillColor="#EAF2FF"
+        android:pathData="M16,50h76c4.4,0 8,3.6 8,8v24c0,4.4 -3.6,8 -8,8H16c-4.4,0 -8,-3.6 -8,-8V58c0,-4.4 3.6,-8 8,-8z" />
+
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M25,28m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+
+    <path
+        android:fillColor="#7C3AED"
+        android:pathData="M43,28m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M61,28m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+
+    <path
+        android:fillColor="#22D3EE"
+        android:pathData="M79,28m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+
+    <path
+        android:fillColor="#D7E7FF"
+        android:pathData="M18,58h14v14H18zM36,58h14v14H36zM54,58h14v14H54zM72,58h14v14H72z" />
+
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M56,60h10v10H56z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M61,56m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+
+    <path
+        android:fillColor="#122C5A"
+        android:pathData="M61,58m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+
+    <path
+        android:fillColor="#122C5A"
+        android:pathData="M61,48h1v6h-1zM61,66h1v6h-1zM53,56h6v1h-6zM63,56h6v1h-6z" />
+
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M24,77h60c3.3,0 6,2.7 6,6v1c0,3.3 -2.7,6 -6,6H24c-3.3,0 -6,-2.7 -6,-6v-1c0,-3.3 2.7,-6 6,-6z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,82h8v3h-8zM42,82h8v3h-8zM54,82h8v3h-8zM66,82h8v3h-8z" />
+</vector>
